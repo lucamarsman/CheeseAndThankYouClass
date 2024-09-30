@@ -19,6 +19,6 @@ namespace CheeseAndThankYou.Models
         public int ProductId { get; set; }
 
         //Parent ref to product
-        public Product Product { get; set; }
+        public Product? Product { get; set; }
     }
 }

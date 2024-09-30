@@ -10,6 +10,11 @@ namespace CheeseAndThankYou.Data
             : base(options)
         {
         }
-        public DbSet<CheeseAndThankYou.Models.Product> Product { get; set; } = default!;
+        //DbSets based on model classes
+        public DbSet<Product> Products { get; set; }
+        public DbSet<CartItem> CartItems { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<OrderDetail> OrderDetails { get; set; }
+        public DbSet<Order> Orders { get; set; }
     }
 }
