@@ -20,5 +20,15 @@ namespace CheeseAndThankYou.Models
         public string? Image { get; set; }
         
         public string Size { get; set; }
+
+        public int CategoryId { get; set; }
+
+        //Parent ref
+        public Category? Category { get; set; }
+
+        // child ref for CartItems
+        public List<CartItem> CartItems { get; set; }
+
+        public List<OrderDetail>? OrderDetails { get; set; }
     }
 }
