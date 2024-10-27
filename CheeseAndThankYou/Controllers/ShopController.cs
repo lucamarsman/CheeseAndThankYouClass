@@ -1,13 +1,22 @@
 ﻿using CheeseAndThankYou.Models;
 using Microsoft.AspNetCore.Mvc;
+using CheeseAndThankYou.Data;
 
 namespace CheeseAndThankYou.Controllers
 {
     public class ShopController : Controller
     {
+        // db connection for all methods in controller
+        private readonly ApplicationDbContext _context;
+        // constructor w/db connection dependency
+        public ShopController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
         public IActionResult Index()
         {
-            return View();
+            var categories = _context.Categories.ToList();
+            return View(categories);
         }
 
         // GET: /Shop/ByCategory/5

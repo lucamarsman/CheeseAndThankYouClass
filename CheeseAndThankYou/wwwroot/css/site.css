@@ -20,3 +20,11 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+table.sortable th:hover {
+    cursor: pointer;
+}
+
+.thumb {
+    width:85px;
+}
