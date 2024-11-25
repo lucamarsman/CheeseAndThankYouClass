@@ -2,7 +2,10 @@
 using CheeseAndThankYou.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore;
+using Stripe;
+using Stripe.Checkout;
 
 namespace CheeseAndThankYou.Controllers
 {
@@ -11,10 +14,14 @@ namespace CheeseAndThankYou.Controllers
         // db connection for all methods in controller
         private readonly ApplicationDbContext _context;
 
+        // config dependency to read stripe key from appsettings
+        private readonly IConfiguration _configuration;
+
         // constructor w/db connection dependency
-        public ShopController(ApplicationDbContext context)
+        public ShopController(ApplicationDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         public IActionResult Index()
@@ -160,6 +167,66 @@ namespace CheeseAndThankYou.Controllers
         public IActionResult Checkout()
         {
             return View();
+        }
+
+        //POST /Shop/Checkout
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public IActionResult Checkout([Bind("FirstName, LastName, Address, City, Province, PostalCode, Phone")] Order order)
+        {
+            order.OrderDate = DateTime.Now;
+            order.CustomerId = User.Identity.Name;
+
+            var cartItems = _context.CartItems.Where(c => c.CustomerId == order.CustomerId);
+            order.OrderTotal = (from c in cartItems select c.Quantity * c.Price).Sum();
+
+            //store the order in a session var
+            HttpContext.Session.SetObject("Order", order);
+
+            return RedirectToAction("Payment");
+        }
+
+        // GET  /Shop/Payment
+        [Authorize]
+        public IActionResult Payment()
+        {
+            // get the order from session var 
+            var order = HttpContext.Session.GetObject<Order>("Order");
+            StripeConfiguration.ApiKey = _configuration.GetValue<string>("StripeSecretKey");
+
+            // create Stripe checkout session
+            var options = new SessionCreateOptions
+            {
+                PaymentMethodTypes = new List<string>
+                {
+                    "card"
+                },
+                LineItems = new List<SessionLineItemOptions>
+                {
+                    new SessionLineItemOptions {
+                        Quantity = 1,
+                        PriceData = new SessionLineItemPriceDataOptions
+                        {
+                            Currency = "cad",
+                            UnitAmount = (long?)(order.OrderTotal * 100),
+                            ProductData = new SessionLineItemPriceDataProductDataOptions
+                            {
+                                Name = "Cheese and Thank You Purchase"
+                            }
+                        }
+                    }
+                },
+                Mode = "payment",
+                SuccessUrl = "https://" + Request.Host + "/Shop/SaveOrder",
+                CancelUrl = "https://" + Request.Host + "/Shop/Cart"
+            };
+
+            // execute the payment attempt with Stripe
+            var service = new SessionService();
+            Session session = service.Create(options);
+            Response.Headers.Add("location", session.Url);
+            return new StatusCodeResult(303);
         }
     }
 }
